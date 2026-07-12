@@ -250,7 +250,11 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>سامانه داوری مسابقات ربوکاپ</h1>
+        <div className="badge">🤖</div>
+        <div>
+          <h1>سامانه داوری مسابقات ربوکاپ</h1>
+          <p className="subtitle">پیشکاپ · Junior / Advance Junior / Senior</p>
+        </div>
       </header>
       <nav className="tabs">
         <button className={tab === 'teams' ? 'active' : ''} onClick={() => setTab('teams')}>تیم‌ها</button>

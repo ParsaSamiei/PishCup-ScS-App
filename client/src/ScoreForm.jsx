@@ -28,16 +28,15 @@ export function calcSection(items, values) {
   return { total, breakdown };
 }
 
-function Item({ item, value, onChange }) {
+function ItemDetails({ item, value, onChange }) {
   if (item.type === 'binary') {
     return (
-      <label className="item-row checkbox-row">
+      <label className="detail-single">
         <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} />
-        <span>{item.label}</span>
-        <span className="pts">{item.points}</span>
       </label>
     );
   }
+
   if (item.type === 'multi') {
     const arr = Array.isArray(value) ? value : [];
     const toggle = (opt) => {
@@ -45,48 +44,38 @@ function Item({ item, value, onChange }) {
       onChange(has ? arr.filter((o) => o !== opt) : [...arr, opt]);
     };
     return (
-      <div className="item-row">
-        <div className="item-label">
-          {item.label} <span className="pts">{item.points} / واحد</span>
-        </div>
-        <div className="option-grid">
-          {item.options.map((opt) => (
-            <label key={opt} className={'opt-box' + (arr.includes(opt) ? ' checked' : '')}>
-              <input type="checkbox" checked={arr.includes(opt)} onChange={() => toggle(opt)} />
-              {opt}
-            </label>
-          ))}
-        </div>
-        <div className="item-total">جمع: {item.points * arr.length}</div>
+      <div className="opt-grid">
+        {item.options.map((opt) => (
+          <label key={opt} className={'opt-chip' + (arr.includes(opt) ? ' checked' : '')}>
+            <span className="opt-chip-label">{opt}</span>
+            <input type="checkbox" checked={arr.includes(opt)} onChange={() => toggle(opt)} />
+          </label>
+        ))}
       </div>
     );
   }
+
   if (item.type === 'choice') {
     return (
-      <div className="item-row">
-        <div className="item-label">{item.label}</div>
-        <div className="option-grid">
-          {item.choices.map((c) => (
-            <label key={c.label} className={'opt-box' + (value === c.value ? ' checked' : '')}>
-              <input
-                type="radio"
-                name={item.key}
-                checked={value === c.value}
-                onChange={() => onChange(c.value)}
-              />
-              {c.label} ({c.value})
-            </label>
-          ))}
-        </div>
+      <div className="opt-grid opt-grid-wide">
+        {item.choices.map((c) => (
+          <label key={c.label} className={'opt-chip opt-chip-wide' + (value === c.value ? ' checked' : '')}>
+            <span className="opt-chip-label">{c.label}</span>
+            <input
+              type="radio"
+              name={item.key}
+              checked={value === c.value}
+              onChange={() => onChange(c.value)}
+            />
+          </label>
+        ))}
       </div>
     );
   }
+
   if (item.type === 'scale') {
     return (
-      <div className="item-row">
-        <label className="item-label">
-          {item.label} <span className="pts">حداکثر {item.points}</span>
-        </label>
+      <div className="detail-numeric">
         <input
           type="number"
           min={0}
@@ -95,15 +84,14 @@ function Item({ item, value, onChange }) {
           onChange={(e) => onChange(Number(e.target.value))}
           className="num-input"
         />
+        <span className="numeric-hint">از {item.points}</span>
       </div>
     );
   }
+
   if (item.type === 'counter') {
     return (
-      <div className="item-row">
-        <label className="item-label">
-          {item.label} <span className="pts">{item.points} / بار</span>
-        </label>
+      <div className="detail-numeric">
         <input
           type="number"
           min={0}
@@ -111,28 +99,76 @@ function Item({ item, value, onChange }) {
           onChange={(e) => onChange(Number(e.target.value))}
           className="num-input"
         />
+        <span className="numeric-hint">بار</span>
       </div>
     );
   }
+
   return null;
 }
 
-function Section({ title, items, values, onChange }) {
-  const { total, breakdown } = useMemo(() => calcSection(items, values), [items, values]);
+function ItemRow({ item, value, rowScore, onChange }) {
   return (
-    <div className="section">
-      <div className="section-header">
-        <h3>{title}</h3>
-        <span className="section-total">{total}</span>
-      </div>
-      {items.map((item) => (
-        <Item
-          key={item.key}
-          item={item}
-          value={values[item.key]}
-          onChange={(v) => onChange({ ...values, [item.key]: v })}
-        />
-      ))}
+    <tr className="item-row">
+      <td className="col-label">{item.label}</td>
+      <td className="col-pts">{item.points}</td>
+      <td className="col-details">
+        <ItemDetails item={item} value={value} onChange={onChange} />
+      </td>
+      <td className="col-total">{rowScore}</td>
+    </tr>
+  );
+}
+
+const TONE = {
+  performance: 'perf',
+  technical: 'tech',
+  negative: 'neg',
+  group: 'group',
+};
+
+const SECTION_TITLES = {
+  performance: 'عملکرد ربات',
+  technical: 'فنی ربات',
+  negative: 'امتیازات منفی',
+  group: 'امتیازات گروهی',
+};
+
+function Section({ sectionKey, items, values, onChange }) {
+  const { total, breakdown } = useMemo(() => calcSection(items, values), [items, values]);
+  const tone = TONE[sectionKey];
+  const title = SECTION_TITLES[sectionKey];
+
+  return (
+    <div className={`sheet-section tone-${tone}`}>
+      <div className="section-band">{title}</div>
+      <table className="sheet-table">
+        <thead>
+          <tr>
+            <th className="col-label">شرح آیتم</th>
+            <th className="col-pts">امتیاز</th>
+            <th className="col-details">جزئیات</th>
+            <th className="col-total">جمع</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <ItemRow
+              key={item.key}
+              item={item}
+              value={values[item.key]}
+              rowScore={breakdown[item.key]}
+              onChange={(v) => onChange({ ...values, [item.key]: v })}
+            />
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="section-total-row">
+            <td className="total-label" colSpan={3}>جمع بخش {title}</td>
+            <td className="col-total">{total}</td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }
@@ -150,11 +186,14 @@ export default function ScoreForm({ league, values, onValuesChange }) {
 
   return (
     <div className="score-form">
-      <Section title="عملکرد ربات" items={league.performance} values={v.performance || {}} onChange={(s) => update('performance', s)} />
-      <Section title="فنی ربات" items={league.technical} values={v.technical || {}} onChange={(s) => update('technical', s)} />
-      <Section title="امتیازات منفی" items={league.negative} values={v.negative || {}} onChange={(s) => update('negative', s)} />
-      <Section title="امتیازات گروهی" items={league.group} values={v.group || {}} onChange={(s) => update('group', s)} />
-      <div className="final-total">امتیاز نهایی کل: <strong>{final}</strong></div>
+      <Section sectionKey="performance" items={league.performance} values={v.performance || {}} onChange={(s) => update('performance', s)} />
+      <Section sectionKey="technical" items={league.technical} values={v.technical || {}} onChange={(s) => update('technical', s)} />
+      <Section sectionKey="negative" items={league.negative} values={v.negative || {}} onChange={(s) => update('negative', s)} />
+      <Section sectionKey="group" items={league.group} values={v.group || {}} onChange={(s) => update('group', s)} />
+      <div className="final-total">
+        <span>امتیاز نهایی کل</span>
+        <strong>{final}</strong>
+      </div>
     </div>
   );
 }
