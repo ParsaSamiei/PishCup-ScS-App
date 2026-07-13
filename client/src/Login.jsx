@@ -26,7 +26,7 @@ export default function Login({ onSuccess }) {
     <div className="login-page">
       <div className="login-card">
         <img src={logo} alt="Pishnam Robotics Academy" className="login-logo" />
-        <h1>سامانه داوری مسابقات پیشکاپ</h1>
+        <h1>سامانه داوری مسابقات پیشکاپ دوره چهارم</h1>
         <p className="login-subtitle">ورود فقط برای داوران و مسئولین برگزاری</p>
 
         <form onSubmit={submit} className="login-form">

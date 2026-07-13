@@ -179,41 +179,49 @@ app.get('/api/leaderboard', async (req, res) => {
 // ---------- Export to Excel ----------
 app.get('/api/export', async (req, res) => {
   const { league } = req.query;
-  let sql = `SELECT t.name as team_name, s.league, s.round_number,
-                    s.performance_total, s.technical_total, s.negative_total, s.group_total, s.final_total,
-                    s.round_time_seconds, s.judge_name, s.created_at
-             FROM score_entries s JOIN teams t ON t.id = s.team_id`;
-  const params = [];
-  if (league) { params.push(league); sql += ' WHERE s.league = $1'; }
-  sql += ' ORDER BY s.league, t.name, s.round_number';
-  const { rows } = await pool.query(sql, params);
+  // If a specific league was requested, only build tabs for that one;
+  // otherwise build a Scores + Leaderboard tab pair for every league.
+  const leaguesToExport = league ? [league] : Object.keys(LEAGUES);
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Scores');
 
-  const lbSql = `
-    WITH best_rounds AS (
-      SELECT DISTINCT ON (s.team_id)
-        s.team_id,
-        s.final_total,
-        s.round_time_seconds
-      FROM score_entries s
-      ORDER BY s.team_id, s.final_total DESC, s.round_time_seconds ASC NULLS LAST, s.id ASC
-    )
-    SELECT t.name as team_name, t.league, br.final_total as best_score,
-           br.round_time_seconds as best_time_seconds, COUNT(s.id) as rounds_played
-    FROM teams t
-    LEFT JOIN best_rounds br ON br.team_id = t.id
-    LEFT JOIN score_entries s ON s.team_id = t.id
-    ${league ? 'WHERE t.league = $1' : ''}
-    GROUP BY t.id, t.name, t.league, br.final_total, br.round_time_seconds
-    ORDER BY t.league, br.final_total DESC NULLS LAST, br.round_time_seconds ASC NULLS LAST, t.name ASC
-  `;
-  const { rows: lb } = await pool.query(lbSql, league ? [league] : []);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lb), 'Leaderboard');
+  for (const lg of leaguesToExport) {
+    const sql = `SELECT t.name as team_name, s.round_number,
+                        s.performance_total, s.technical_total, s.negative_total, s.group_total, s.final_total,
+                        s.round_time_seconds, s.judge_name, s.created_at
+                 FROM score_entries s JOIN teams t ON t.id = s.team_id
+                 WHERE s.league = $1
+                 ORDER BY t.name, s.round_number`;
+    const { rows } = await pool.query(sql, [lg]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), `Scores-${lg}`.slice(0, 31));
+
+    const lbSql = `
+      WITH best_rounds AS (
+        SELECT DISTINCT ON (s.team_id)
+          s.team_id,
+          s.final_total,
+          s.round_time_seconds
+        FROM score_entries s
+        JOIN teams t2 ON t2.id = s.team_id
+        WHERE t2.league = $1
+        ORDER BY s.team_id, s.final_total DESC, s.round_time_seconds ASC NULLS LAST, s.id ASC
+      )
+      SELECT t.name as team_name, br.final_total as best_score,
+             br.round_time_seconds as best_time_seconds, COUNT(s.id) as rounds_played
+      FROM teams t
+      LEFT JOIN best_rounds br ON br.team_id = t.id
+      LEFT JOIN score_entries s ON s.team_id = t.id
+      WHERE t.league = $1
+      GROUP BY t.id, t.name, br.final_total, br.round_time_seconds
+      ORDER BY br.final_total DESC NULLS LAST, br.round_time_seconds ASC NULLS LAST, t.name ASC
+    `;
+    const { rows: lb } = await pool.query(lbSql, [lg]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lb), `Leaderboard-${lg}`.slice(0, 31));
+  }
 
   const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-  res.setHeader('Content-Disposition', 'attachment; filename="robocup-scores.xlsx"');
+  const filename = league ? `robocup-${league}-scores.xlsx` : 'robocup-all-leagues-scores.xlsx';
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
 });

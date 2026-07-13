@@ -344,7 +344,11 @@ function ExportTab({ config }) {
   return (
     <div className="tab-content">
       <h2>خروجی اکسل</h2>
-      <p>یک فایل Excel شامل تمام امتیازات و جدول رده‌بندی دانلود می‌شود.</p>
+      <p>یک فایل Excel شامل تمام امتیازات<p>
+        {league
+          ? 'یک فایل Excel شامل امتیازات و جدول رده‌بندی همین لیگ (در دو تب جداگانه) دانلود می‌شود.'
+          : 'یک فایل Excel شامل تمام لیگ‌ها دانلود می‌شود؛ هر لیگ در تب امتیازات و تب رده‌بندی مخصوص به خودش قرار می‌گیرد.'}
+      </p> و جدول رده‌بندی دانلود می‌شود.</p>
       <select value={league} onChange={(e) => setLeague(e.target.value)}>
         <option value="">همه لیگ‌ها</option>
         {LEAGUE_KEYS.map((k) => <option key={k} value={k}>{config[k].label}</option>)}
@@ -412,7 +416,7 @@ export default function App() {
               <img src={logo} alt="Pishnam Robotics Academy" className="app-logo" />
             </div>
             <div className="app-header-text">
-              <h1>سامانه داوری مسابقات پیشکاپ</h1>
+              <h1>سامانه داوری مسابقات پیشکاپ دوره چهارم</h1>
               <p className="subtitle">
                 <span className="league-chip">Junior</span>
                 <span className="league-chip">Advance Junior</span>
