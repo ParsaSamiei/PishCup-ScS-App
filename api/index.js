@@ -94,19 +94,23 @@ app.get('/api/scores', async (req, res) => {
 });
 
 app.post('/api/scores', async (req, res) => {
-  const { team_id, league, round_number, values, judge_name } = req.body;
+  const { team_id, league, round_number, values, judge_name, round_time_seconds } = req.body;
   if (!team_id || !LEAGUES[league] || !round_number) {
     return res.status(400).json({ error: 'ورودی نامعتبر است (تیم، لیگ یا شماره راند)' });
   }
+  const timeSeconds = round_time_seconds != null && round_time_seconds !== ''
+    ? Math.max(0, Number(round_time_seconds) || 0)
+    : null;
   const totals = calculateTotals(league, values || {});
   const { rows } = await pool.query(
     `INSERT INTO score_entries
-       (team_id, league, round_number, values_json, performance_total, technical_total, negative_total, group_total, final_total, judge_name)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       (team_id, league, round_number, values_json, performance_total, technical_total, negative_total, group_total, final_total, round_time_seconds, judge_name)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING id`,
     [
       team_id, league, round_number, JSON.stringify(values || {}),
       totals.performance.total, totals.technical.total, totals.negative.total, totals.group.total, totals.final_total,
+      timeSeconds,
       judge_name || null,
     ]
   );
@@ -137,19 +141,32 @@ app.delete('/api/scores/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ---------- Leaderboard (best round per team) ----------
+// ---------- Leaderboard (best round per team; tie-break by lower time) ----------
 app.get('/api/leaderboard', async (req, res) => {
   const { league } = req.query;
   let sql = `
+    WITH best_rounds AS (
+      SELECT DISTINCT ON (s.team_id)
+        s.team_id,
+        s.final_total,
+        s.round_time_seconds
+      FROM score_entries s
+      ORDER BY s.team_id, s.final_total DESC, s.round_time_seconds ASC NULLS LAST, s.id ASC
+    )
     SELECT t.id as team_id, t.name as team_name, t.league,
-           MAX(s.final_total) as best_score,
+           br.final_total as best_score,
+           br.round_time_seconds as best_time_seconds,
            COUNT(s.id) as rounds_played
     FROM teams t
+    LEFT JOIN best_rounds br ON br.team_id = t.id
     LEFT JOIN score_entries s ON s.team_id = t.id
   `;
   const params = [];
   if (league) { params.push(league); sql += ` WHERE t.league = $${params.length}`; }
-  sql += ' GROUP BY t.id ORDER BY (MAX(s.final_total) IS NULL), MAX(s.final_total) DESC NULLS LAST';
+  sql += `
+    GROUP BY t.id, t.name, t.league, br.final_total, br.round_time_seconds
+    ORDER BY (br.final_total IS NULL), br.final_total DESC NULLS LAST, br.round_time_seconds ASC NULLS LAST, t.name ASC
+  `;
   try {
     const { rows } = await pool.query(sql, params);
     res.json(rows);
@@ -164,7 +181,7 @@ app.get('/api/export', async (req, res) => {
   const { league } = req.query;
   let sql = `SELECT t.name as team_name, s.league, s.round_number,
                     s.performance_total, s.technical_total, s.negative_total, s.group_total, s.final_total,
-                    s.judge_name, s.created_at
+                    s.round_time_seconds, s.judge_name, s.created_at
              FROM score_entries s JOIN teams t ON t.id = s.team_id`;
   const params = [];
   if (league) { params.push(league); sql += ' WHERE s.league = $1'; }
@@ -175,10 +192,22 @@ app.get('/api/export', async (req, res) => {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Scores');
 
   const lbSql = `
-    SELECT t.name as team_name, t.league, MAX(s.final_total) as best_score, COUNT(s.id) as rounds_played
-    FROM teams t LEFT JOIN score_entries s ON s.team_id = t.id
+    WITH best_rounds AS (
+      SELECT DISTINCT ON (s.team_id)
+        s.team_id,
+        s.final_total,
+        s.round_time_seconds
+      FROM score_entries s
+      ORDER BY s.team_id, s.final_total DESC, s.round_time_seconds ASC NULLS LAST, s.id ASC
+    )
+    SELECT t.name as team_name, t.league, br.final_total as best_score,
+           br.round_time_seconds as best_time_seconds, COUNT(s.id) as rounds_played
+    FROM teams t
+    LEFT JOIN best_rounds br ON br.team_id = t.id
+    LEFT JOIN score_entries s ON s.team_id = t.id
     ${league ? 'WHERE t.league = $1' : ''}
-    GROUP BY t.id ORDER BY t.league, best_score DESC
+    GROUP BY t.id, t.name, t.league, br.final_total, br.round_time_seconds
+    ORDER BY t.league, br.final_total DESC NULLS LAST, br.round_time_seconds ASC NULLS LAST, t.name ASC
   `;
   const { rows: lb } = await pool.query(lbSql, league ? [league] : []);
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lb), 'Leaderboard');

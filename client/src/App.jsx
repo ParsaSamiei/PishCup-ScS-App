@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { api, isLoggedIn } from './api.js';
 import Login from './Login.jsx';
-import ScoreForm from './ScoreForm.jsx';
+import ScoreForm, { calcSection } from './ScoreForm.jsx';
+import { formatRoundTime, roundTimeToSeconds, ScoreNum } from './formatScore.jsx';
 import logo from './assets/Pishnam_logo.png';
 
 const LEAGUE_KEYS = ['Junior', 'AdvJunior', 'Senior'];
@@ -76,21 +77,67 @@ function ScoreEntryTab({ config }) {
   const [teamId, setTeamId] = useState('');
   const [round, setRound] = useState(1);
   const [judge, setJudge] = useState('');
+  const [roundMinutes, setRoundMinutes] = useState('');
+  const [roundSeconds, setRoundSeconds] = useState('');
   const [values, setValues] = useState({ performance: {}, technical: {}, negative: {}, group: {} });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  useEffect(() => { setTeamId(''); setValues({ performance: {}, technical: {}, negative: {}, group: {} }); }, [league]);
+  const leagueConfig = config[league];
+  const selectedTeam = (teams || []).find((t) => String(t.id) === String(teamId));
+
+  const previewTotals = useMemo(() => {
+    const v = values || { performance: {}, technical: {}, negative: {}, group: {} };
+    const perf = calcSection(leagueConfig.performance, v.performance || {});
+    const tech = calcSection(leagueConfig.technical, v.technical || {});
+    const neg = calcSection(leagueConfig.negative, v.negative || {});
+    const group = calcSection(leagueConfig.group, v.group || {});
+    return {
+      performance: perf.total,
+      technical: tech.total,
+      negative: neg.total,
+      group: group.total,
+      final: perf.total + tech.total + neg.total + group.total,
+    };
+  }, [leagueConfig, values]);
+
+  const resetForm = () => {
+    setValues({ performance: {}, technical: {}, negative: {}, group: {} });
+    setRoundMinutes('');
+    setRoundSeconds('');
+    setRound((r) => Number(r) + 1);
+  };
+
+  useEffect(() => {
+    setTeamId('');
+    setValues({ performance: {}, technical: {}, negative: {}, group: {} });
+    setRoundMinutes('');
+    setRoundSeconds('');
+  }, [league]);
+
+  const openConfirm = () => {
+    if (!teamId) { setMessage('لطفا تیم را انتخاب کنید'); return; }
+    setMessage('');
+    setConfirmOpen(true);
+  };
 
   const save = async () => {
-    if (!teamId) { setMessage('لطفا تیم را انتخاب کنید'); return; }
     setSaving(true);
     setMessage('');
     try {
-      await api.addScore({ team_id: teamId, league, round_number: Number(round), values, judge_name: judge });
+      const round_time_seconds = roundTimeToSeconds(roundMinutes, roundSeconds);
+      await api.addScore({
+        team_id: teamId,
+        league,
+        round_number: Number(round),
+        values,
+        judge_name: judge,
+        round_time_seconds: round_time_seconds || null,
+      });
       setMessage('امتیاز با موفقیت ذخیره شد ✔');
-      setValues({ performance: {}, technical: {}, negative: {}, group: {} });
-      setRound((r) => Number(r) + 1);
+      setConfirmOpen(false);
+      resetForm();
     } catch (e) {
       setMessage('خطا: ' + e.message);
     } finally {
@@ -102,37 +149,90 @@ function ScoreEntryTab({ config }) {
     <div className="tab-content">
       <h2>ثبت امتیاز راند</h2>
       <div className="entry-controls">
-        <label>
-          لیگ
+        <label className="entry-field">
+          <span className="entry-field-label">لیگ</span>
           <select value={league} onChange={(e) => setLeague(e.target.value)}>
             {LEAGUE_KEYS.map((k) => <option key={k} value={k}>{config[k].label}</option>)}
           </select>
         </label>
-        <label>
-          تیم
+        <label className="entry-field entry-field--team">
+          <span className="entry-field-label">تیم</span>
           <select value={teamId} onChange={(e) => setTeamId(e.target.value)}>
             <option value="">-- انتخاب تیم --</option>
             {(teams || []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </label>
-        <label>
-          شماره راند
+        <label className="entry-field entry-field--round">
+          <span className="entry-field-label">شماره راند</span>
           <input type="number" min={1} value={round} onChange={(e) => setRound(e.target.value)} />
         </label>
-        <label>
-          نام داور
+        <label className="entry-field entry-field--time">
+          <span className="entry-field-label">زمان راند</span>
+          <div className="time-inputs" dir="ltr" title="دقیقه : ثانیه">
+            <input
+              type="number"
+              min={0}
+              value={roundMinutes}
+              onChange={(e) => setRoundMinutes(e.target.value)}
+              placeholder="0"
+              className="time-box"
+              aria-label="دقیقه"
+            />
+            <span className="time-sep" aria-hidden="true">:</span>
+            <input
+              type="number"
+              min={0}
+              max={59}
+              value={roundSeconds}
+              onChange={(e) => setRoundSeconds(e.target.value)}
+              placeholder="00"
+              className="time-box"
+              aria-label="ثانیه"
+            />
+          </div>
+        </label>
+        <label className="entry-field">
+          <span className="entry-field-label">نام داور</span>
           <input value={judge} onChange={(e) => setJudge(e.target.value)} placeholder="اختیاری" />
         </label>
       </div>
 
-      <ScoreForm league={config[league]} values={values} onValuesChange={setValues} />
+      <ScoreForm league={leagueConfig} values={values} onValuesChange={setValues} />
 
       <div className="save-row">
-        <button disabled={saving} onClick={save} className="primary">
-          {saving ? 'در حال ذخیره...' : 'ذخیره امتیاز این راند'}
+        <button disabled={saving} onClick={openConfirm} className="primary">
+          بررسی و ثبت امتیاز
         </button>
         {message && <span className="message">{message}</span>}
       </div>
+
+      {confirmOpen && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+          <div className="confirm-card">
+            <h3 id="confirm-title">آیا از ثبت امتیاز مطمئن هستید؟</h3>
+            <p className="confirm-hint">لطفاً قبل از ذخیره، اطلاعات زیر را یک‌بار دیگر بررسی کنید.</p>
+            <dl className="confirm-summary">
+              <div><dt>تیم</dt><dd>{selectedTeam?.name || '—'}</dd></div>
+              <div><dt>لیگ</dt><dd>{leagueConfig.label}</dd></div>
+              <div><dt>راند</dt><dd><span className="num-ltr" dir="ltr">{round}</span></dd></div>
+              <div><dt>زمان راند</dt><dd><span className="num-ltr" dir="ltr">{formatRoundTime(roundTimeToSeconds(roundMinutes, roundSeconds))}</span></dd></div>
+              <div><dt>عملکرد</dt><dd><ScoreNum value={previewTotals.performance} /></dd></div>
+              <div><dt>فنی</dt><dd><ScoreNum value={previewTotals.technical} /></dd></div>
+              <div><dt>منفی</dt><dd><ScoreNum value={previewTotals.negative} /></dd></div>
+              <div><dt>گروهی</dt><dd><ScoreNum value={previewTotals.group} /></dd></div>
+              <div className="confirm-final"><dt>امتیاز نهایی</dt><dd><ScoreNum value={previewTotals.final} /></dd></div>
+            </dl>
+            <div className="confirm-actions">
+              <button type="button" className="primary" disabled={saving} onClick={save}>
+                {saving ? 'در حال ذخیره...' : 'بله، ذخیره شود'}
+              </button>
+              <button type="button" disabled={saving} onClick={() => setConfirmOpen(false)}>
+                بازگشت و بررسی مجدد
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -159,7 +259,7 @@ function HistoryTab({ config }) {
       <table className="score-table">
         <thead>
           <tr>
-            <th>تیم</th><th>راند</th><th>عملکرد</th><th>فنی</th><th>منفی</th><th>گروهی</th><th>نهایی</th><th>داور</th><th></th>
+            <th>تیم</th><th>راند</th><th>زمان</th><th>عملکرد</th><th>فنی</th><th>منفی</th><th>گروهی</th><th>نهایی</th><th>داور</th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -167,17 +267,18 @@ function HistoryTab({ config }) {
             <tr key={s.id}>
               <td>{s.team_name}</td>
               <td>{s.round_number}</td>
-              <td>{s.performance_total}</td>
-              <td>{s.technical_total}</td>
-              <td>{s.negative_total}</td>
-              <td>{s.group_total}</td>
-              <td><strong>{s.final_total}</strong></td>
+              <td><span className="num-ltr" dir="ltr">{formatRoundTime(s.round_time_seconds)}</span></td>
+              <td><ScoreNum value={s.performance_total} /></td>
+              <td><ScoreNum value={s.technical_total} /></td>
+              <td><ScoreNum value={s.negative_total} /></td>
+              <td><ScoreNum value={s.group_total} /></td>
+              <td><strong><ScoreNum value={s.final_total} /></strong></td>
               <td>{s.judge_name || '-'}</td>
               <td><button className="link-danger" onClick={() => remove(s.id)}>حذف</button></td>
             </tr>
           ))}
           {(scores || []).length === 0 && !loading && (
-            <tr><td colSpan={9} className="muted">رکوردی ثبت نشده</td></tr>
+            <tr><td colSpan={10} className="muted">رکوردی ثبت نشده</td></tr>
           )}
         </tbody>
       </table>
@@ -201,19 +302,20 @@ function LeaderboardTab({ config }) {
 
       <table className="score-table">
         <thead>
-          <tr><th>رتبه</th><th>تیم</th><th>بهترین امتیاز</th><th>تعداد راندها</th></tr>
+          <tr><th>رتبه</th><th>تیم</th><th>بهترین امتیاز</th><th>زمان بهترین راند</th><th>تعداد راندها</th></tr>
         </thead>
         <tbody>
           {(rows || []).map((r, i) => (
             <tr key={r.team_id}>
               <td>{i + 1}</td>
               <td>{r.team_name}</td>
-              <td><strong>{r.best_score ?? '-'}</strong></td>
+              <td><strong><ScoreNum value={r.best_score} /></strong></td>
+              <td><span className="num-ltr" dir="ltr">{formatRoundTime(r.best_time_seconds)}</span></td>
               <td>{r.rounds_played}</td>
             </tr>
           ))}
           {(rows || []).length === 0 && !loading && (
-            <tr><td colSpan={4} className="muted">تیمی ثبت نشده</td></tr>
+            <tr><td colSpan={5} className="muted">تیمی ثبت نشده</td></tr>
           )}
         </tbody>
       </table>
@@ -293,22 +395,49 @@ export default function App() {
   if (error) return <div className="app-error">{error}</div>;
   if (!config) return <div className="app-loading">در حال اتصال به سرور...</div>;
 
+  const tabs = [
+    { id: 'teams', label: 'تیم‌ها' },
+    { id: 'entry', label: 'ثبت امتیاز' },
+    { id: 'history', label: 'سوابق' },
+    { id: 'leaderboard', label: 'رده‌بندی' },
+    { id: 'export', label: 'خروجی اکسل' },
+  ];
+
   return (
     <div className="app">
       <header className="app-header">
-        <img src={logo} alt="Pishnam Robotics Academy" className="app-logo" />
-        <div className="app-header-text">
-          <h1>سامانه داوری مسابقات پیشکاپ</h1>
-          <p className="subtitle">پیشکاپ · Junior / Advance Junior / Senior</p>
+        <div className="app-header-inner">
+          <div className="app-brand">
+            <div className="app-logo-wrap">
+              <img src={logo} alt="Pishnam Robotics Academy" className="app-logo" />
+            </div>
+            <div className="app-header-text">
+              <h1>سامانه داوری مسابقات پیشکاپ</h1>
+              <p className="subtitle">
+                <span className="league-chip">Junior</span>
+                <span className="league-chip">Advance Junior</span>
+                <span className="league-chip">Senior</span>
+              </p>
+            </div>
+          </div>
+          <button type="button" className="logout-btn" onClick={logout} aria-label="خروج از حساب">
+            خروج
+          </button>
         </div>
-        <button type="button" className="logout-btn" onClick={logout}>خروج</button>
       </header>
-      <nav className="tabs">
-        <button className={tab === 'teams' ? 'active' : ''} onClick={() => setTab('teams')}>تیم‌ها</button>
-        <button className={tab === 'entry' ? 'active' : ''} onClick={() => setTab('entry')}>ثبت امتیاز</button>
-        <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>سوابق</button>
-        <button className={tab === 'leaderboard' ? 'active' : ''} onClick={() => setTab('leaderboard')}>رده‌بندی</button>
-        <button className={tab === 'export' ? 'active' : ''} onClick={() => setTab('export')}>خروجی اکسل</button>
+      <nav className="tabs" aria-label="ناوبری اصلی">
+        <div className="tabs-inner">
+          {tabs.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              className={tab === id ? 'active' : ''}
+              onClick={() => setTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </nav>
       <main>
         {tab === 'teams' && <TeamsTab config={config} />}

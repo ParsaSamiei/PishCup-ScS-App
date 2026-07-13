@@ -39,10 +39,19 @@ function initDb() {
         negative_total REAL NOT NULL,
         group_total REAL NOT NULL,
         final_total REAL NOT NULL,
+        round_time_seconds INTEGER,
         judge_name TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       );
-    `);
+    `).then(async () => {
+      await pool.query(`
+        DO $$ BEGIN
+          ALTER TABLE score_entries ADD COLUMN round_time_seconds INTEGER;
+        EXCEPTION
+          WHEN duplicate_column THEN NULL;
+        END $$;
+      `);
+    });
   }
   return initPromise;
 }

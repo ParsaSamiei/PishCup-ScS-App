@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { ScoreNum } from './formatScore.jsx';
 
 // Computes the same totals as the server, for live preview while judging.
 export function calcSection(items, values) {
@@ -111,11 +112,11 @@ function ItemRow({ item, value, rowScore, onChange }) {
   return (
     <tr className="item-row">
       <td className="col-label">{item.label}</td>
-      <td className="col-pts">{item.points}</td>
+      <td className="col-pts"><ScoreNum value={item.points} /></td>
       <td className="col-details">
         <ItemDetails item={item} value={value} onChange={onChange} />
       </td>
-      <td className="col-total">{rowScore}</td>
+      <td className="col-total"><ScoreNum value={rowScore} /></td>
     </tr>
   );
 }
@@ -165,7 +166,7 @@ function Section({ sectionKey, items, values, onChange }) {
         <tfoot>
           <tr className="section-total-row">
             <td className="total-label" colSpan={3}>جمع بخش {title}</td>
-            <td className="col-total">{total}</td>
+            <td className="col-total"><ScoreNum value={total} /></td>
           </tr>
         </tfoot>
       </table>
@@ -192,7 +193,7 @@ export default function ScoreForm({ league, values, onValuesChange }) {
       <Section sectionKey="group" items={league.group} values={v.group || {}} onChange={(s) => update('group', s)} />
       <div className="final-total">
         <span>امتیاز نهایی کل</span>
-        <strong>{final}</strong>
+        <strong><ScoreNum value={final} /></strong>
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ const TECHNICAL = [
   },
   { key: "spacer", label: "استفاده از اسپیسر", type: "binary", points: 5 },
   { key: "battery", label: "داشتن جای باتری", type: "binary", points: 5 },
-  { key: "creativity", label: "خلاقیت", type: "scale", points: 5 },
+  { key: "creativity", label: "خلاقیت", type: "binary", points: 5 },
 ];
 
 const NEGATIVE = [
@@ -51,8 +51,8 @@ const NEGATIVE = [
 ];
 
 const GROUP = [
-  { key: "clean_desk", label: "تمیزی میز کار", type: "scale", points: 5 },
-  { key: "teamwork", label: "اخلاق و همکاری تیمی", type: "scale", points: 10 },
+  { key: "clean_desk", label: "تمیزی میز کار", type: "binary", points: 5 },
+  { key: "teamwork", label: "اخلاق و همکاری تیمی", type: "binary", points: 10 },
 ];
 
 const LEAGUES = {
