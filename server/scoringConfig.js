@@ -24,7 +24,7 @@ const TECHNICAL = [
   },
   { key: "spacer", label: "استفاده از اسپیسر", type: "binary", points: 5 },
   { key: "battery", label: "داشتن جای باتری", type: "binary", points: 5 },
-  { key: "creativity", label: "خلاقیت", type: "scale", points: 5 },
+  { key: "creativity", label: "خلاقیت", type: "binary", points: 5 },
 ];
 
 const NEGATIVE = [
@@ -33,7 +33,7 @@ const NEGATIVE = [
     key: "glue_spray",
     label: "استفاده از اسپری چسب برای باز کردن چسب حرارتی",
     type: "binary",
-    points: -5,
+    points: -15,
   },
   {
     key: "hot_glue",
@@ -51,8 +51,8 @@ const NEGATIVE = [
 ];
 
 const GROUP = [
-  { key: "clean_desk", label: "تمیزی میز کار", type: "scale", points: 5 },
-  { key: "teamwork", label: "اخلاق و همکاری تیمی", type: "scale", points: 10 },
+  { key: "clean_desk", label: "تمیزی میز کار", type: "binary", points: 5 },
+  { key: "teamwork", label: "اخلاق و همکاری تیمی", type: "binary", points: 10 },
 ];
 
 const LEAGUES = {
@@ -132,7 +132,7 @@ const LEAGUES = {
         key: "drop_can",
         label: "انداختن قوطی از ارتفاع",
         type: "binary",
-        points: 10,
+        points: 15,
       },
       { key: "seesaw", label: "رد کردن الاکلنگ", type: "binary", points: 15 },
       {
@@ -183,7 +183,7 @@ const LEAGUES = {
         key: "lift_can",
         label: "بلند کردن قوطی از سطح زمین",
         type: "multi",
-        points: 10,
+        points: 15,
         options: [1, 2, 3, 4, 5, 6],
       },
       {

@@ -11,10 +11,15 @@ const cors = require('cors');
 const XLSX = require('xlsx');
 const { pool, initDb } = require('./db');
 const { LEAGUES, calculateTotals } = require('./scoringConfig');
+const { createToken, validateCredentials, authMiddleware, getAuthConfig } = require('./auth');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+if (!getAuthConfig().password) {
+  console.warn('WARNING: AUTH_PASSWORD is not set — login will be disabled until you configure it.');
+}
 
 // Make sure tables exist before handling any request. initDb() caches its
 // promise, so this is cheap after the first call.
@@ -26,6 +31,23 @@ app.use(async (req, res, next) => {
     console.error('DB init failed:', err);
     res.status(500).json({ error: 'خطا در اتصال به پایگاه داده' });
   }
+});
+
+// ---------- Auth ----------
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body || {};
+  if (!getAuthConfig().password) {
+    return res.status(503).json({ error: 'احراز هویت پیکربندی نشده است' });
+  }
+  if (!validateCredentials(username, password)) {
+    return res.status(401).json({ error: 'نام کاربری یا رمز عبور اشتباه است' });
+  }
+  res.json({ token: createToken(username), username });
+});
+
+app.use('/api', (req, res, next) => {
+  if (req.path === '/login' && req.method === 'POST') return next();
+  authMiddleware(req, res, next);
 });
 
 // ---------- Config ----------

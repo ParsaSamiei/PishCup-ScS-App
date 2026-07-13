@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { api } from './api.js';
+import { api, isLoggedIn } from './api.js';
+import Login from './Login.jsx';
 import ScoreForm from './ScoreForm.jsx';
+import logo from './assets/Pishnam_logo.png';
 
 const LEAGUE_KEYS = ['Junior', 'AdvJunior', 'Senior'];
 
@@ -221,6 +223,22 @@ function LeaderboardTab({ config }) {
 
 function ExportTab({ config }) {
   const [league, setLeague] = useState('');
+  const [downloading, setDownloading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const download = async () => {
+    setDownloading(true);
+    setMessage('');
+    try {
+      await api.exportScores(league);
+      setMessage('فایل با موفقیت دانلود شد ✔');
+    } catch (e) {
+      setMessage('خطا: ' + e.message);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="tab-content">
       <h2>خروجی اکسل</h2>
@@ -230,20 +248,47 @@ function ExportTab({ config }) {
         {LEAGUE_KEYS.map((k) => <option key={k} value={k}>{config[k].label}</option>)}
       </select>
       <div className="save-row">
-        <a className="primary button-link" href={api.exportUrl(league)}>دانلود فایل Excel</a>
+        <button className="primary" disabled={downloading} onClick={download}>
+          {downloading ? 'در حال آماده‌سازی...' : 'دانلود فایل Excel'}
+        </button>
+        {message && <span className={message.startsWith('خطا') ? 'error' : 'message'}>{message}</span>}
       </div>
     </div>
   );
 }
 
 export default function App() {
+  const [authenticated, setAuthenticated] = useState(isLoggedIn);
   const [config, setConfig] = useState(null);
   const [tab, setTab] = useState('entry');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getConfig().then(setConfig).catch((e) => setError('اتصال به سرور برقرار نشد. مطمئن شوید سرور در پورت 4000 در حال اجراست. (' + e.message + ')'));
+    const onLogout = () => {
+      setAuthenticated(false);
+      setConfig(null);
+    };
+    window.addEventListener('auth:logout', onLogout);
+    return () => window.removeEventListener('auth:logout', onLogout);
   }, []);
+
+  useEffect(() => {
+    if (!authenticated) return;
+    api.getConfig()
+      .then(setConfig)
+      .catch((e) => setError('اتصال به سرور برقرار نشد. مطمئن شوید سرور در پورت 4000 در حال اجراست. (' + e.message + ')'));
+  }, [authenticated]);
+
+  const logout = () => {
+    api.logout();
+    setAuthenticated(false);
+    setConfig(null);
+    setError('');
+  };
+
+  if (!authenticated) {
+    return <Login onSuccess={() => setAuthenticated(true)} />;
+  }
 
   if (error) return <div className="app-error">{error}</div>;
   if (!config) return <div className="app-loading">در حال اتصال به سرور...</div>;
@@ -251,11 +296,12 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="badge">🤖</div>
-        <div>
+        <img src={logo} alt="Pishnam Robotics Academy" className="app-logo" />
+        <div className="app-header-text">
           <h1>سامانه داوری مسابقات پیشکاپ</h1>
           <p className="subtitle">پیشکاپ · Junior / Advance Junior / Senior</p>
         </div>
+        <button type="button" className="logout-btn" onClick={logout}>خروج</button>
       </header>
       <nav className="tabs">
         <button className={tab === 'teams' ? 'active' : ''} onClick={() => setTab('teams')}>تیم‌ها</button>
