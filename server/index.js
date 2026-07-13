@@ -100,7 +100,7 @@ app.get('/api/leaderboard', (req, res) => {
   `;
   const params = [];
   if (league) { sql += ' WHERE t.league = ?'; params.push(league); }
-  sql += ' GROUP BY t.id ORDER BY (best_score IS NULL), best_score DESC';
+  sql += ' GROUP BY t.id ORDER BY (MAX(s.final_total) IS NULL), MAX(s.final_total) DESC';
   const rows = db.prepare(sql).all(...params);
   res.json(rows);
 });

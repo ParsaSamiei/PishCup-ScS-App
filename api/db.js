@@ -1,10 +1,16 @@
 const { Pool } = require('pg');
 
 // Vercel/Neon Postgres connection string, set in your Vercel project's
-// Environment Variables as DATABASE_URL.
+// Environment Variables as DATABASE_URL. For local dev, put it in root `.env`.
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    'DATABASE_URL is not set. Add it to the root .env file (see .env.example).'
+  );
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
 });
 
 let initPromise = null;

@@ -185,7 +185,7 @@ function HistoryTab({ config }) {
 
 function LeaderboardTab({ config }) {
   const [league, setLeague] = useState('Junior');
-  const [{ data: rows, loading }] = useAsync(() => api.getLeaderboard(league), [league]);
+  const [{ data: rows, loading, error }] = useAsync(() => api.getLeaderboard(league), [league]);
 
   return (
     <div className="tab-content">
@@ -195,6 +195,7 @@ function LeaderboardTab({ config }) {
       </select>
 
       {loading && <p>در حال بارگذاری...</p>}
+      {error && <p className="error">{error}</p>}
 
       <table className="score-table">
         <thead>
@@ -252,7 +253,7 @@ export default function App() {
       <header className="app-header">
         <div className="badge">🤖</div>
         <div>
-          <h1>سامانه داوری مسابقات ربوکاپ</h1>
+          <h1>سامانه داوری مسابقات پیشکاپ</h1>
           <p className="subtitle">پیشکاپ · Junior / Advance Junior / Senior</p>
         </div>
       </header>

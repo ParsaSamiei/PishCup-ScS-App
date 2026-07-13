@@ -1,3 +1,11 @@
+const path = require('path');
+
+// Load root .env when running locally (`node api/index.js` / `npm start`).
+// Vercel injects env vars itself, so skip there.
+if (process.env.VERCEL !== '1') {
+  require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+}
+
 const express = require('express');
 const cors = require('cors');
 const XLSX = require('xlsx');
@@ -119,9 +127,14 @@ app.get('/api/leaderboard', async (req, res) => {
   `;
   const params = [];
   if (league) { params.push(league); sql += ` WHERE t.league = $${params.length}`; }
-  sql += ' GROUP BY t.id ORDER BY (best_score IS NULL), best_score DESC';
-  const { rows } = await pool.query(sql, params);
-  res.json(rows);
+  sql += ' GROUP BY t.id ORDER BY (MAX(s.final_total) IS NULL), MAX(s.final_total) DESC NULLS LAST';
+  try {
+    const { rows } = await pool.query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('Leaderboard query failed:', err);
+    res.status(500).json({ error: 'خطا در بارگذاری رده‌بندی' });
+  }
 });
 
 // ---------- Export to Excel ----------
