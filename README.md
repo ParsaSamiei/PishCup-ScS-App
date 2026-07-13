@@ -12,7 +12,7 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-lightgrey">
 </p>
 
-A local-first app (no internet needed after setup) for RoboCup competition judges to quickly record each team's score every round, following the official judging sheets for the **Junior**, **Advance Junior**, and **Senior** leagues. The score entry form mirrors the exact layout and color-coding of the printed judging sheets, so judges see something familiar rather than a generic form.
+A local-first app (no internet needed after setup) for PishCup competition judges to quickly record each team's score every round, following the official judging sheets for the **Junior**, **Advance Junior**, and **Senior** leagues. The score entry form mirrors the exact layout and color-coding of the printed judging sheets, so judges see something familiar rather than a generic form.
 
 ---
 
@@ -27,7 +27,6 @@ A local-first app (no internet needed after setup) for RoboCup competition judge
 - [API Reference](#api-reference)
 - [Scoring Rules](#scoring-rules)
 - [Notes](#notes)
-- [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -43,12 +42,6 @@ A local-first app (no internet needed after setup) for RoboCup competition judge
 - 📤 **Excel export** with all scores and the leaderboard, filterable by league or across all leagues.
 - 🔌 **Fully local-first** — data lives in a single SQLite file, and no internet connection is needed after the initial `npm install`.
 - 🌐 RTL, Persian-language UI, set in the Vazirmatn typeface.
-
-## Preview
-
-> Take a screenshot of the score entry form, drop it in a folder like `docs/screenshot.png`, and uncomment the line below:
->
-> `![Score entry form preview](docs/screenshot.png)`
 
 ## Project Structure
 
@@ -138,17 +131,6 @@ If any of these assumptions differ from your competition's actual rules, just ed
 - **Does it work offline?** Yes — after the initial setup (`npm install`), the whole app runs locally (on localhost) with no internet connection required.
 - **Multiple judges at once?** If all judges work on one laptop, that's fine. To connect multiple devices over a local network, run the server bound to your local IP (not just `localhost`), or open an Issue and this can be added.
 - **Changing the scoring rules:** All rules are in `server/scoringConfig.js`.
-
-## Troubleshooting
-
-**ERESOLVE error when running `npm install` in the `client` folder:**
-This means the installed Vite version conflicts with `@vitejs/plugin-react`. The current version of this repo pins Vite to v7 to avoid this; if you still see it, make sure you're using the latest `client/package.json` from this repo.
-
-**High-severity `npm audit` warning for the `xlsx` package:**
-The version of `xlsx` published on the npm registry is old and has known vulnerabilities; patched releases are only published through SheetJS's own CDN. This repo already points `xlsx` in `server/package.json` directly at `https://cdn.sheetjs.com/...` to resolve this.
-
-**`ENOENT: no such file or directory, uv_cwd` error in your terminal:**
-This isn't related to the project code — it means the folder your terminal is currently in has been deleted or moved. Open a fresh terminal and `cd` back into the project folder.
 
 ## Contributing
 

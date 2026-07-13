@@ -1,4 +1,7 @@
-const BASE = 'http://localhost:4000/api';
+// In production (Vercel), the client and API are served from the same
+// deployment, so a relative '/api' path just works. For local development,
+// set VITE_API_URL=http://localhost:4000/api in client/.env
+const BASE = import.meta.env.VITE_API_URL || '/api';
 
 async function req(path, options) {
   const res = await fetch(BASE + path, {
