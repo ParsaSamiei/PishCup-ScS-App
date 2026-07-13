@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import logo from './assets/Pishnam_logo.png';
+import logo from './assets/pishnam_logo.png';
 import { api } from './api.js';
 
 export default function Login({ onSuccess }) {
