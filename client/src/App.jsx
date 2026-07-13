@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api, isLoggedIn } from './api.js';
 import Login from './Login.jsx';
 import ScoreForm from './ScoreForm.jsx';
-import logo from './assets/pishnam_logo.png';
+import logo from './assets/Pishnam_logo.png';
 
 const LEAGUE_KEYS = ['Junior', 'AdvJunior', 'Senior'];
 
