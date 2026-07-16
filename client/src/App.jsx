@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api, isLoggedIn } from './api.js';
 import Login from './Login.jsx';
 import ScoreForm, { calcSection } from './ScoreForm.jsx';
@@ -84,6 +84,34 @@ function ScoreEntryTab({ config }) {
   const [message, setMessage] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // Round timer: start/stop stopwatch that auto-fills the minute/second boxes
+  // above. The boxes stay editable by hand once the timer is stopped.
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const timerIntervalRef = useRef(null);
+  const timerStartRef = useRef(0);
+
+  useEffect(() => {
+    if (!timerRunning) return undefined;
+    timerStartRef.current = Date.now() - elapsedMs;
+    timerIntervalRef.current = setInterval(() => {
+      const ms = Date.now() - timerStartRef.current;
+      setElapsedMs(ms);
+      setRoundMinutes(String(Math.floor(ms / 60000)));
+      setRoundSeconds(String(Math.floor((ms % 60000) / 1000)));
+    }, 200);
+    return () => clearInterval(timerIntervalRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timerRunning]);
+
+  const toggleTimer = () => setTimerRunning((r) => !r);
+  const resetTimer = () => {
+    setTimerRunning(false);
+    setElapsedMs(0);
+    setRoundMinutes('');
+    setRoundSeconds('');
+  };
+
   const leagueConfig = config[league];
   const selectedTeam = (teams || []).find((t) => String(t.id) === String(teamId));
 
@@ -106,6 +134,8 @@ function ScoreEntryTab({ config }) {
     setValues({ performance: {}, technical: {}, negative: {}, group: {} });
     setRoundMinutes('');
     setRoundSeconds('');
+    setTimerRunning(false);
+    setElapsedMs(0);
     setRound((r) => Number(r) + 1);
   };
 
@@ -114,6 +144,8 @@ function ScoreEntryTab({ config }) {
     setValues({ performance: {}, technical: {}, negative: {}, group: {} });
     setRoundMinutes('');
     setRoundSeconds('');
+    setTimerRunning(false);
+    setElapsedMs(0);
   }, [league]);
 
   const openConfirm = () => {
@@ -177,6 +209,7 @@ function ScoreEntryTab({ config }) {
               placeholder="0"
               className="time-box"
               aria-label="دقیقه"
+              disabled={timerRunning}
             />
             <span className="time-sep" aria-hidden="true">:</span>
             <input
@@ -188,6 +221,7 @@ function ScoreEntryTab({ config }) {
               placeholder="00"
               className="time-box"
               aria-label="ثانیه"
+              disabled={timerRunning}
             />
           </div>
         </label>
@@ -195,6 +229,22 @@ function ScoreEntryTab({ config }) {
           <span className="entry-field-label">نام داور</span>
           <input value={judge} onChange={(e) => setJudge(e.target.value)} placeholder="اختیاری" />
         </label>
+      </div>
+
+      <div className="timer-row">
+        <span className="timer-row-label">تایمر راند:</span>
+        <span className="timer-display" dir="ltr">{formatRoundTime(Math.floor(elapsedMs / 1000))}</span>
+        <button
+          type="button"
+          className={timerRunning ? 'timer-btn timer-btn--stop' : 'timer-btn timer-btn--start'}
+          onClick={toggleTimer}
+        >
+          {timerRunning ? '⏸ توقف' : '▶ شروع'}
+        </button>
+        <button type="button" className="timer-btn timer-btn--reset" onClick={resetTimer} disabled={timerRunning}>
+          ریست
+        </button>
+        <span className="timer-hint">تایمر جعبه‌های دقیقه/ثانیه را پر می‌کند؛ پس از توقف می‌توانید آن‌ها را دستی هم اصلاح کنید.</span>
       </div>
 
       <ScoreForm league={leagueConfig} values={values} onValuesChange={setValues} />
@@ -237,9 +287,112 @@ function ScoreEntryTab({ config }) {
   );
 }
 
+function ScoreRecordModal({ mode, record, config, onClose, onSaved }) {
+  const readOnly = mode === 'view';
+  const leagueConfig = config[record.league];
+  const [values, setValues] = useState(record.values_json || { performance: {}, technical: {}, negative: {}, group: {} });
+  const [roundNumber, setRoundNumber] = useState(record.round_number);
+  const [judgeName, setJudgeName] = useState(record.judge_name || '');
+  const [minutes, setMinutes] = useState(
+    record.round_time_seconds != null ? String(Math.floor(record.round_time_seconds / 60)) : ''
+  );
+  const [seconds, setSeconds] = useState(
+    record.round_time_seconds != null ? String(record.round_time_seconds % 60) : ''
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      await api.updateScore(record.id, {
+        values,
+        round_number: Number(roundNumber) || record.round_number,
+        judge_name: judgeName,
+        round_time_seconds: roundTimeToSeconds(minutes, seconds),
+      });
+      onSaved();
+    } catch (e) {
+      setError(e.message || 'خطا در ذخیره‌سازی');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="confirm-overlay" role="dialog" aria-modal="true">
+      <div className="confirm-card record-modal">
+        <h3>{readOnly ? 'مشاهده رکورد امتیاز' : 'ویرایش رکورد امتیاز'}</h3>
+        <div className="record-modal-meta">
+          <div><span>تیم</span><strong>{record.team_name}</strong></div>
+          <div><span>لیگ</span><strong>{leagueConfig.label}</strong></div>
+          <label>
+            <span>شماره راند</span>
+            <input
+              type="number"
+              min={1}
+              value={roundNumber}
+              onChange={(e) => setRoundNumber(e.target.value)}
+              disabled={readOnly}
+            />
+          </label>
+          <label>
+            <span>زمان راند</span>
+            <div className="time-inputs" dir="ltr" title="دقیقه : ثانیه">
+              <input
+                type="number"
+                min={0}
+                value={minutes}
+                onChange={(e) => setMinutes(e.target.value)}
+                placeholder="0"
+                className="time-box"
+                aria-label="دقیقه"
+                disabled={readOnly}
+              />
+              <span className="time-sep" aria-hidden="true">:</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={seconds}
+                onChange={(e) => setSeconds(e.target.value)}
+                placeholder="00"
+                className="time-box"
+                aria-label="ثانیه"
+                disabled={readOnly}
+              />
+            </div>
+          </label>
+          <label>
+            <span>نام داور</span>
+            <input value={judgeName} onChange={(e) => setJudgeName(e.target.value)} placeholder="اختیاری" disabled={readOnly} />
+          </label>
+        </div>
+
+        <ScoreForm league={leagueConfig} values={values} onValuesChange={setValues} readOnly={readOnly} />
+
+        {error && <p className="login-error">{error}</p>}
+
+        <div className="confirm-actions">
+          {!readOnly && (
+            <button type="button" className="primary" disabled={saving} onClick={save}>
+              {saving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
+            </button>
+          )}
+          <button type="button" disabled={saving} onClick={onClose}>
+            {readOnly ? 'بستن' : 'انصراف'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HistoryTab({ config }) {
   const [league, setLeague] = useState('Junior');
   const [{ data: scores, loading }, reload] = useAsync(() => api.getScores({ league }), [league]);
+  const [modal, setModal] = useState(null); // { mode: 'view' | 'edit', record }
 
   const remove = async (id) => {
     if (!confirm('حذف این رکورد امتیاز؟')) return;
@@ -274,7 +427,11 @@ function HistoryTab({ config }) {
               <td><ScoreNum value={s.group_total} /></td>
               <td><strong><ScoreNum value={s.final_total} /></strong></td>
               <td>{s.judge_name || '-'}</td>
-              <td><button className="link-danger" onClick={() => remove(s.id)}>حذف</button></td>
+              <td className="row-actions">
+                <button className="link" onClick={() => setModal({ mode: 'view', record: s })}>نمایش</button>
+                <button className="link" onClick={() => setModal({ mode: 'edit', record: s })}>ویرایش</button>
+                <button className="link-danger" onClick={() => remove(s.id)}>حذف</button>
+              </td>
             </tr>
           ))}
           {(scores || []).length === 0 && !loading && (
@@ -282,6 +439,16 @@ function HistoryTab({ config }) {
           )}
         </tbody>
       </table>
+
+      {modal && (
+        <ScoreRecordModal
+          mode={modal.mode}
+          record={modal.record}
+          config={config}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); reload(); }}
+        />
+      )}
     </div>
   );
 }

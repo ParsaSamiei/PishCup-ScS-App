@@ -118,18 +118,22 @@ app.post('/api/scores', async (req, res) => {
 });
 
 app.put('/api/scores/:id', async (req, res) => {
-  const { values, round_number, judge_name } = req.body;
+  const { values, round_number, judge_name, round_time_seconds } = req.body;
   const { rows: existingRows } = await pool.query('SELECT * FROM score_entries WHERE id = $1', [req.params.id]);
   const existing = existingRows[0];
   if (!existing) return res.status(404).json({ error: 'رکورد یافت نشد' });
   const totals = calculateTotals(existing.league, values || {});
+  const timeSeconds = round_time_seconds != null && round_time_seconds !== ''
+    ? Math.max(0, Number(round_time_seconds) || 0)
+    : existing.round_time_seconds;
   await pool.query(
     `UPDATE score_entries
-     SET values_json=$1, performance_total=$2, technical_total=$3, negative_total=$4, group_total=$5, final_total=$6, round_number=$7, judge_name=$8
-     WHERE id=$9`,
+     SET values_json=$1, performance_total=$2, technical_total=$3, negative_total=$4, group_total=$5, final_total=$6, round_number=$7, judge_name=$8, round_time_seconds=$9
+     WHERE id=$10`,
     [
       JSON.stringify(values || {}), totals.performance.total, totals.technical.total, totals.negative.total,
       totals.group.total, totals.final_total, round_number || existing.round_number, judge_name || existing.judge_name,
+      timeSeconds,
       req.params.id,
     ]
   );
