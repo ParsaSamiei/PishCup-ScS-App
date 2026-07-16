@@ -41,12 +41,30 @@ function initDb() {
         final_total REAL NOT NULL,
         round_time_seconds INTEGER,
         judge_name TEXT,
+        captain_name TEXT,
+        captain_signature TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       );
     `).then(async () => {
       await pool.query(`
         DO $$ BEGIN
           ALTER TABLE score_entries ADD COLUMN round_time_seconds INTEGER;
+        EXCEPTION
+          WHEN duplicate_column THEN NULL;
+        END $$;
+      `);
+      // captain_name/captain_signature: added later than round_time_seconds,
+      // so existing databases need the same idempotent ALTER treatment.
+      await pool.query(`
+        DO $$ BEGIN
+          ALTER TABLE score_entries ADD COLUMN captain_name TEXT;
+        EXCEPTION
+          WHEN duplicate_column THEN NULL;
+        END $$;
+      `);
+      await pool.query(`
+        DO $$ BEGIN
+          ALTER TABLE score_entries ADD COLUMN captain_signature TEXT;
         EXCEPTION
           WHEN duplicate_column THEN NULL;
         END $$;

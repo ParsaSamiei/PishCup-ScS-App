@@ -94,9 +94,17 @@ app.get('/api/scores', async (req, res) => {
 });
 
 app.post('/api/scores', async (req, res) => {
-  const { team_id, league, round_number, values, judge_name, round_time_seconds } = req.body;
+  const {
+    team_id, league, round_number, values, judge_name, round_time_seconds,
+    captain_name, captain_signature,
+  } = req.body;
   if (!team_id || !LEAGUES[league] || !round_number) {
     return res.status(400).json({ error: 'ورودی نامعتبر است (تیم، لیگ یا شماره راند)' });
+  }
+  // The captain's signature is the team's admission that the scores on this
+  // sheet are correct, so it's required before a round can be saved at all.
+  if (!captain_signature) {
+    return res.status(400).json({ error: 'برای ثبت راند، امضای کاپیتان تیم الزامی است' });
   }
   const timeSeconds = round_time_seconds != null && round_time_seconds !== ''
     ? Math.max(0, Number(round_time_seconds) || 0)
@@ -104,14 +112,16 @@ app.post('/api/scores', async (req, res) => {
   const totals = calculateTotals(league, values || {});
   const { rows } = await pool.query(
     `INSERT INTO score_entries
-       (team_id, league, round_number, values_json, performance_total, technical_total, negative_total, group_total, final_total, round_time_seconds, judge_name)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       (team_id, league, round_number, values_json, performance_total, technical_total, negative_total, group_total, final_total, round_time_seconds, judge_name, captain_name, captain_signature)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
      RETURNING id`,
     [
       team_id, league, round_number, JSON.stringify(values || {}),
       totals.performance.total, totals.technical.total, totals.negative.total, totals.group.total, totals.final_total,
       timeSeconds,
       judge_name || null,
+      captain_name || null,
+      captain_signature,
     ]
   );
   res.json({ id: rows[0].id, ...totals });

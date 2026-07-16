@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api, isLoggedIn } from './api.js';
 import Login from './Login.jsx';
 import ScoreForm, { calcSection } from './ScoreForm.jsx';
+import SignaturePad from './SignaturePad.jsx';
 import { formatRoundTime, roundTimeToSeconds, ScoreNum } from './formatScore.jsx';
 import logo from './assets/Pishnam_logo.png';
 
@@ -83,6 +84,8 @@ function ScoreEntryTab({ config }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [captainName, setCaptainName] = useState('');
+  const [captainSignature, setCaptainSignature] = useState(null);
 
   // Round timer: start/stop stopwatch that auto-fills the minute/second boxes
   // above. The boxes stay editable by hand once the timer is stopped.
@@ -137,6 +140,8 @@ function ScoreEntryTab({ config }) {
     setTimerRunning(false);
     setElapsedMs(0);
     setRound((r) => Number(r) + 1);
+    setCaptainName('');
+    setCaptainSignature(null);
   };
 
   useEffect(() => {
@@ -146,6 +151,8 @@ function ScoreEntryTab({ config }) {
     setRoundSeconds('');
     setTimerRunning(false);
     setElapsedMs(0);
+    setCaptainName('');
+    setCaptainSignature(null);
   }, [league]);
 
   const openConfirm = () => {
@@ -155,6 +162,10 @@ function ScoreEntryTab({ config }) {
   };
 
   const save = async () => {
+    if (!captainSignature) {
+      setMessage('برای ثبت راند، کاپیتان تیم باید امضا کند');
+      return;
+    }
     setSaving(true);
     setMessage('');
     try {
@@ -166,6 +177,8 @@ function ScoreEntryTab({ config }) {
         values,
         judge_name: judge,
         round_time_seconds: round_time_seconds || null,
+        captain_name: captainName,
+        captain_signature: captainSignature,
       });
       setMessage('امتیاز با موفقیت ذخیره شد ✔');
       setConfirmOpen(false);
@@ -272,8 +285,30 @@ function ScoreEntryTab({ config }) {
               <div><dt>گروهی</dt><dd><ScoreNum value={previewTotals.group} /></dd></div>
               <div className="confirm-final"><dt>امتیاز نهایی</dt><dd><ScoreNum value={previewTotals.final} /></dd></div>
             </dl>
+
+            <div className="signature-block">
+              <label className="signature-name-label">
+                <span>نام کاپیتان تیم</span>
+                <input
+                  value={captainName}
+                  onChange={(e) => setCaptainName(e.target.value)}
+                  placeholder="نام و نام خانوادگی"
+                />
+              </label>
+              <p className="confirm-hint">
+                کاپیتان تیم با امضای زیر، صحت امتیازهای ثبت‌شده در این راند را تایید می‌کند.
+              </p>
+              <SignaturePad value={captainSignature} onChange={setCaptainSignature} />
+            </div>
+
             <div className="confirm-actions">
-              <button type="button" className="primary" disabled={saving} onClick={save}>
+              <button
+                type="button"
+                className="primary"
+                disabled={saving || !captainSignature}
+                onClick={save}
+                title={!captainSignature ? 'ابتدا کاپیتان تیم باید امضا کند' : undefined}
+              >
                 {saving ? 'در حال ذخیره...' : 'بله، ذخیره شود'}
               </button>
               <button type="button" disabled={saving} onClick={() => setConfirmOpen(false)}>
@@ -371,6 +406,21 @@ function ScoreRecordModal({ mode, record, config, onClose, onSaved }) {
         </div>
 
         <ScoreForm league={leagueConfig} values={values} onValuesChange={setValues} readOnly={readOnly} />
+
+        <div className="signature-block signature-block-readonly">
+          <div className="signature-readonly-name">
+            <span>کاپیتان تیم</span>
+            <strong>{record.captain_name || '—'}</strong>
+          </div>
+          {record.captain_signature ? (
+            <>
+              <img src={record.captain_signature} alt="امضای کاپیتان تیم" className="signature-preview" />
+              <span className="signature-hint">امضای تاییدکننده این راند</span>
+            </>
+          ) : (
+            <span className="muted">امضایی برای این راند ثبت نشده (رکورد قدیمی)</span>
+          )}
+        </div>
 
         {error && <p className="login-error">{error}</p>}
 
