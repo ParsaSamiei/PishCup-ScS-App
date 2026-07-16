@@ -10,7 +10,7 @@ if (!process.env.DATABASE_URL) {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
+  ssl: /localhost|sslmode=disable/.test(process.env.DATABASE_URL) ? false : { rejectUnauthorized: false },
 });
 
 let initPromise = null;

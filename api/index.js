@@ -225,6 +225,10 @@ app.get('/api/export', async (req, res) => {
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
 });
+app.use(express.static(path.join(__dirname, '../client/dist')));
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
 
 // Locally (npm start / node api/index.js) we still want a normal running
 // server. On Vercel, this file is imported and wrapped as a function, so

@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pishcup_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pishcup_pgdata:/var/lib/postgresql/data
+    networks:
+      - pishcup_net
+    # No "ports:" here on purpose — Postgres is only reachable from the
+    # app container over the internal pishcup_net network, never from
+    # the host or other apps.
+
+  app:
+    image: ghcr.io/parsasamiei/pishcup-scs-app:latest
+    container_name: pishcup_app
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      AUTH_USERNAME: ${AUTH_USERNAME}
+      AUTH_PASSWORD: ${AUTH_PASSWORD}
+    ports:
+      # Bound to localhost only — nginx on the host proxies to it.
+      # Other apps' ports are untouched, and this port isn't reachable
+      # from outside the server at all.
+      - "127.0.0.1:4000:4000"
+    networks:
+      - pishcup_net
+
+networks:
+  pishcup_net:
+    name: pishcup_net
+
+volumes:
+  pishcup_pgdata:
+    name: pishcup_pgdata
