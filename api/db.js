@@ -39,7 +39,7 @@ function initDb() {
         negative_total REAL NOT NULL,
         group_total REAL NOT NULL,
         final_total REAL NOT NULL,
-        round_time_seconds INTEGER,
+        round_time_seconds REAL,
         judge_name TEXT,
         captain_name TEXT,
         captain_signature TEXT,
@@ -48,10 +48,17 @@ function initDb() {
     `).then(async () => {
       await pool.query(`
         DO $$ BEGIN
-          ALTER TABLE score_entries ADD COLUMN round_time_seconds INTEGER;
+          ALTER TABLE score_entries ADD COLUMN round_time_seconds REAL;
         EXCEPTION
           WHEN duplicate_column THEN NULL;
         END $$;
+      `);
+      // Databases created before 0.1s precision was added have this column
+      // as INTEGER; widen it so fractional seconds aren't truncated. Safe to
+      // run every start since ALTER COLUMN TYPE to a wider numeric type is a
+      // no-op once it's already REAL.
+      await pool.query(`
+        ALTER TABLE score_entries ALTER COLUMN round_time_seconds TYPE REAL;
       `);
       // captain_name/captain_signature: added later than round_time_seconds,
       // so existing databases need the same idempotent ALTER treatment.

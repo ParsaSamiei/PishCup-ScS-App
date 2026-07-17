@@ -14,13 +14,18 @@ export function formatRoundTime(totalSeconds) {
   if (totalSeconds == null || totalSeconds === '') return '—';
   const n = Number(totalSeconds);
   if (Number.isNaN(n) || n < 0) return '—';
-  const m = Math.floor(n / 60);
-  const s = n % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
+  // Work in tenths of a second internally so float rounding (e.g. 0.1 + 0.2)
+  // never produces a display glitch like "12.30000000000001".
+  const totalTenths = Math.round(n * 10);
+  const m = Math.floor(totalTenths / 600);
+  const s = Math.floor((totalTenths % 600) / 10);
+  const t = totalTenths % 10;
+  return `${m}:${String(s).padStart(2, '0')}.${t}`;
 }
 
-export function roundTimeToSeconds(minutes, seconds) {
+export function roundTimeToSeconds(minutes, seconds, tenths) {
   const m = Math.max(0, Number(minutes) || 0);
   const s = Math.max(0, Math.min(59, Number(seconds) || 0));
-  return m * 60 + s;
+  const t = Math.max(0, Math.min(9, Number(tenths) || 0));
+  return Math.round((m * 60 + s + t / 10) * 10) / 10;
 }

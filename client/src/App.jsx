@@ -80,6 +80,7 @@ function ScoreEntryTab({ config }) {
   const [judge, setJudge] = useState('');
   const [roundMinutes, setRoundMinutes] = useState('');
   const [roundSeconds, setRoundSeconds] = useState('');
+  const [roundTenths, setRoundTenths] = useState('');
   const [values, setValues] = useState({ performance: {}, technical: {}, negative: {}, group: {} });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -87,12 +88,14 @@ function ScoreEntryTab({ config }) {
   const [captainName, setCaptainName] = useState('');
   const [captainSignature, setCaptainSignature] = useState(null);
 
-  // Round timer: start/stop stopwatch that auto-fills the minute/second boxes
-  // above. The boxes stay editable by hand once the timer is stopped.
+  // Round timer: start/stop stopwatch that auto-fills the minute/second/tenth
+  // boxes above. The boxes stay editable by hand once the timer is stopped.
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const timerIntervalRef = useRef(null);
   const timerStartRef = useRef(0);
+  // Confirmation before wiping the running/finished timer, per issue #1.
+  const [resetTimerConfirmOpen, setResetTimerConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!timerRunning) return undefined;
@@ -101,8 +104,9 @@ function ScoreEntryTab({ config }) {
       const ms = Date.now() - timerStartRef.current;
       setElapsedMs(ms);
       setRoundMinutes(String(Math.floor(ms / 60000)));
-      setRoundSeconds(String(Math.floor((ms % 60000) / 1000)));
-    }, 200);
+      setRoundSeconds(String(Math.floor((ms % 60000) / 1000) % 60));
+      setRoundTenths(String(Math.floor((ms % 1000) / 100)));
+    }, 100);
     return () => clearInterval(timerIntervalRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timerRunning]);
@@ -113,6 +117,12 @@ function ScoreEntryTab({ config }) {
     setElapsedMs(0);
     setRoundMinutes('');
     setRoundSeconds('');
+    setRoundTenths('');
+  };
+  const requestResetTimer = () => setResetTimerConfirmOpen(true);
+  const confirmResetTimer = () => {
+    resetTimer();
+    setResetTimerConfirmOpen(false);
   };
 
   const leagueConfig = config[league];
@@ -137,6 +147,7 @@ function ScoreEntryTab({ config }) {
     setValues({ performance: {}, technical: {}, negative: {}, group: {} });
     setRoundMinutes('');
     setRoundSeconds('');
+    setRoundTenths('');
     setTimerRunning(false);
     setElapsedMs(0);
     setRound((r) => Number(r) + 1);
@@ -149,6 +160,7 @@ function ScoreEntryTab({ config }) {
     setValues({ performance: {}, technical: {}, negative: {}, group: {} });
     setRoundMinutes('');
     setRoundSeconds('');
+    setRoundTenths('');
     setTimerRunning(false);
     setElapsedMs(0);
     setCaptainName('');
@@ -169,7 +181,7 @@ function ScoreEntryTab({ config }) {
     setSaving(true);
     setMessage('');
     try {
-      const round_time_seconds = roundTimeToSeconds(roundMinutes, roundSeconds);
+      const round_time_seconds = roundTimeToSeconds(roundMinutes, roundSeconds, roundTenths);
       await api.addScore({
         team_id: teamId,
         league,
@@ -236,6 +248,18 @@ function ScoreEntryTab({ config }) {
               aria-label="ثانیه"
               disabled={timerRunning}
             />
+            <span className="time-sep" aria-hidden="true">.</span>
+            <input
+              type="number"
+              min={0}
+              max={9}
+              value={roundTenths}
+              onChange={(e) => setRoundTenths(e.target.value)}
+              placeholder="0"
+              className="time-box time-box--tenths"
+              aria-label="دهم ثانیه"
+              disabled={timerRunning}
+            />
           </div>
         </label>
         <label className="entry-field">
@@ -246,7 +270,7 @@ function ScoreEntryTab({ config }) {
 
       <div className="timer-row">
         <span className="timer-row-label">تایمر راند:</span>
-        <span className="timer-display" dir="ltr">{formatRoundTime(Math.floor(elapsedMs / 1000))}</span>
+        <span className="timer-display" dir="ltr">{formatRoundTime(elapsedMs / 1000)}</span>
         <button
           type="button"
           className={timerRunning ? 'timer-btn timer-btn--stop' : 'timer-btn timer-btn--start'}
@@ -254,11 +278,28 @@ function ScoreEntryTab({ config }) {
         >
           {timerRunning ? '⏸ توقف' : '▶ شروع'}
         </button>
-        <button type="button" className="timer-btn timer-btn--reset" onClick={resetTimer} disabled={timerRunning}>
+        <button type="button" className="timer-btn timer-btn--reset" onClick={requestResetTimer} disabled={timerRunning}>
           ریست
         </button>
-        <span className="timer-hint">تایمر جعبه‌های دقیقه/ثانیه را پر می‌کند؛ پس از توقف می‌توانید آن‌ها را دستی هم اصلاح کنید.</span>
+        <span className="timer-hint">تایمر جعبه‌های دقیقه/ثانیه/دهم‌ثانیه را پر می‌کند؛ پس از توقف می‌توانید آن‌ها را دستی هم اصلاح کنید.</span>
       </div>
+
+      {resetTimerConfirmOpen && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="reset-timer-title">
+          <div className="confirm-card confirm-card--small">
+            <h3 id="reset-timer-title">آیا از ریست تایمر مطمئن هستید؟</h3>
+            <p className="confirm-hint">زمان ثبت‌شده فعلی پاک می‌شود و باید تایمر را دوباره شروع کنید.</p>
+            <div className="confirm-actions">
+              <button type="button" className="primary danger" onClick={confirmResetTimer}>
+                بله، ریست شود
+              </button>
+              <button type="button" onClick={() => setResetTimerConfirmOpen(false)}>
+                انصراف
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ScoreForm league={leagueConfig} values={values} onValuesChange={setValues} />
 
@@ -278,7 +319,7 @@ function ScoreEntryTab({ config }) {
               <div><dt>تیم</dt><dd>{selectedTeam?.name || '—'}</dd></div>
               <div><dt>لیگ</dt><dd>{leagueConfig.label}</dd></div>
               <div><dt>راند</dt><dd><span className="num-ltr" dir="ltr">{round}</span></dd></div>
-              <div><dt>زمان راند</dt><dd><span className="num-ltr" dir="ltr">{formatRoundTime(roundTimeToSeconds(roundMinutes, roundSeconds))}</span></dd></div>
+              <div><dt>زمان راند</dt><dd><span className="num-ltr" dir="ltr">{formatRoundTime(roundTimeToSeconds(roundMinutes, roundSeconds, roundTenths))}</span></dd></div>
               <div><dt>عملکرد</dt><dd><ScoreNum value={previewTotals.performance} /></dd></div>
               <div><dt>فنی</dt><dd><ScoreNum value={previewTotals.technical} /></dd></div>
               <div><dt>منفی</dt><dd><ScoreNum value={previewTotals.negative} /></dd></div>
@@ -332,7 +373,12 @@ function ScoreRecordModal({ mode, record, config, onClose, onSaved }) {
     record.round_time_seconds != null ? String(Math.floor(record.round_time_seconds / 60)) : ''
   );
   const [seconds, setSeconds] = useState(
-    record.round_time_seconds != null ? String(record.round_time_seconds % 60) : ''
+    record.round_time_seconds != null ? String(Math.floor(record.round_time_seconds % 60)) : ''
+  );
+  const [tenths, setTenths] = useState(
+    record.round_time_seconds != null
+      ? String(Math.round((record.round_time_seconds % 1) * 10))
+      : ''
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -345,7 +391,7 @@ function ScoreRecordModal({ mode, record, config, onClose, onSaved }) {
         values,
         round_number: Number(roundNumber) || record.round_number,
         judge_name: judgeName,
-        round_time_seconds: roundTimeToSeconds(minutes, seconds),
+        round_time_seconds: roundTimeToSeconds(minutes, seconds, tenths),
       });
       onSaved();
     } catch (e) {
@@ -395,6 +441,18 @@ function ScoreRecordModal({ mode, record, config, onClose, onSaved }) {
                 placeholder="00"
                 className="time-box"
                 aria-label="ثانیه"
+                disabled={readOnly}
+              />
+              <span className="time-sep" aria-hidden="true">.</span>
+              <input
+                type="number"
+                min={0}
+                max={9}
+                value={tenths}
+                onChange={(e) => setTenths(e.target.value)}
+                placeholder="0"
+                className="time-box time-box--tenths"
+                aria-label="دهم ثانیه"
                 disabled={readOnly}
               />
             </div>
