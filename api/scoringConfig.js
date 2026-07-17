@@ -199,7 +199,13 @@ const LEAGUES = {
         type: "binary",
         points: 10,
       },
-      { key: "seesaw", label: "رد کردن الاکلنگ", type: "binary", points: 15 },
+      { key: "seesaw", 
+        label: "رد کردن الاکلنگ", 
+        type: "binary", 
+        points: 15,
+        options: [1, 2]
+
+      },
     ],
     technical: TECHNICAL,
     negative: NEGATIVE,
