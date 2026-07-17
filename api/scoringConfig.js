@@ -45,8 +45,9 @@ const NEGATIVE = [
   {
     key: "no_progress",
     label: "عدم پیشروی (هر بار)",
-    type: "counter",
+    type: "multi",
     points: -5,
+    options: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   },
 ];
 
@@ -134,7 +135,12 @@ const LEAGUES = {
         type: "binary",
         points: 15,
       },
-      { key: "seesaw", label: "رد کردن الاکلنگ", type: "binary", points: 15 },
+      { key: "seesaw",
+        label: "رد کردن الاکلنگ", 
+        type: "multi", 
+        points: 15,
+        options: [1, 2],
+      },
       {
         key: "return_start",
         label: "برگشتن به محل شروع",
