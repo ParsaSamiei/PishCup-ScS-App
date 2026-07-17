@@ -235,6 +235,8 @@ button.primary, .button-link {
   display: inline-block;
 }
 button.primary:hover { background: #2559bd; }
+button.primary.danger { background: var(--danger); border-color: var(--danger); }
+button.primary.danger:hover { background: #ab3320; }
 button:disabled { opacity: 0.55; cursor: default; }
 
 .team-league-block { margin-top: 20px; }
@@ -343,6 +345,7 @@ button:disabled { opacity: 0.55; cursor: default; }
   margin: 0;
 }
 .time-box:focus { outline: none; }
+.time-box--tenths { width: 18px; }
 .time-sep {
   font-weight: 700;
   font-size: 14px;
@@ -395,19 +398,28 @@ button:disabled { opacity: 0.55; cursor: default; }
   inset: 0;
   background: rgba(19, 29, 51, 0.55);
   display: flex;
-  align-items: center;
   justify-content: center;
   padding: 20px;
   z-index: 1000;
+  overflow-y: auto;
+  /* Every child of the overlay is centered via margin:auto on .confirm-card
+     instead of align-items:center here. Centering with align-items on a
+     scroll container clips content above the fold when it's taller than the
+     viewport (e.g. tablets in portrait/landscape with a keyboard docked),
+     which is exactly what made the confirm/back buttons unreachable. */
 }
 .confirm-card {
   width: 100%;
   max-width: 480px;
+  max-height: 100%;
+  overflow-y: auto;
   background: var(--card);
   border-radius: 14px;
   padding: 24px;
   box-shadow: 0 12px 40px rgba(19, 29, 51, 0.25);
+  margin: auto;
 }
+.confirm-card--small { max-width: 400px; }
 .confirm-card h3 {
   margin: 0 0 8px;
   font-size: 17px;
@@ -451,6 +463,13 @@ button:disabled { opacity: 0.55; cursor: default; }
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  position: sticky;
+  bottom: -24px;
+  margin: 0 -24px -24px;
+  padding: 14px 24px;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 14px 14px;
 }
 
 /* ---------- captain signature ---------- */
