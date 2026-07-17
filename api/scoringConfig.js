@@ -201,10 +201,9 @@ const LEAGUES = {
       },
       { key: "seesaw", 
         label: "رد کردن الاکلنگ", 
-        type: "binary", 
+        type: "multi", 
         points: 15,
-        options: [1, 2]
-
+        options: [1, 2],
       },
     ],
     technical: TECHNICAL,
