@@ -132,8 +132,9 @@ const LEAGUES = {
       {
         key: "drop_can",
         label: "انداختن قوطی از ارتفاع",
-        type: "binary",
+        type: "multi",
         points: 15,
+        options: [1, 2, 3, 4],
       },
       { key: "seesaw",
         label: "رد کردن الاکلنگ", 
