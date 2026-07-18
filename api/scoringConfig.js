@@ -191,7 +191,7 @@ const LEAGUES = {
         label: "بلند کردن قوطی از سطح زمین",
         type: "multi",
         points: 15,
-        options: [1, 2, 3, 4, 5, 6],
+        options: [1, 2, 3, 4, 5, 6, 7, 8],
       },
       {
         key: "place_can",
