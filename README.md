@@ -1,69 +1,104 @@
-# 🤖 PishCup RoboCup Judging System
- 
-<p align="center">
-  <b>Score entry, automatic calculation, live leaderboard, and Excel export — for the Junior, Advance Junior, and Senior leagues</b>
-</p>
+<div align="center">
 
-<p align="center">
-  <img alt="Node" src="https://img.shields.io/badge/Node.js-%E2%89%A518-3c873a?logo=node.js&logoColor=white">
-  <img alt="React" src="https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white">
-  <img alt="Vite" src="https://img.shields.io/badge/Vite-7-646cff?logo=vite&logoColor=white">
-  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local--db-07405e?logo=sqlite&logoColor=white">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-lightgrey">
-</p>
+# 🏆 PishCup-ScS-App
 
-A local-first app (no internet needed after setup) for PishCup competition judges to quickly record each team's score every round, following the official judging sheets for the **Junior**, **Advance Junior**, and **Senior** leagues. The score entry form mirrors the exact layout and color-coding of the printed judging sheets, so judges see something familiar rather than a generic form.
+### Scoring & Standings System for PishCup
 
----
+**Built for [PishCup](https://github.com/ParsaSamiei), the RoboCup-style robotics competition hosted by Pishanam Robotics Academy**
 
-## Table of Contents
+[![Made with React](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB?logo=react&logoColor=white)](https://react.dev)
+[![Made with Node](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Docker](https://img.shields.io/badge/Deploy-Docker%20%2B%20Nginx-2496ED?logo=docker&logoColor=white)](https://www.docker.com)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-- [Features](#features)
-- [Preview](#preview)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Setup (first time only)](#setup-first-time-only)
-- [Running it afterwards](#running-it-afterwards)
-- [API Reference](#api-reference)
-- [Scoring Rules](#scoring-rules)
-- [Notes](#notes)
-- [Contributing](#contributing)
-- [License](#license)
+</div>
 
 ---
 
-## Features
+## 🤖 About PishCup
 
-- 📋 **Score form styled after the official judging sheets** — column order (`Total | Details | Points | Item`) and per-section colors (Robot Performance, Robot Technical, Penalties, Group Points) match the printed competition sheets exactly.
-- 🧮 **Live, automatic scoring** for every item, section, and final total as the judge checks boxes.
-- 👥 **Team management** per league (add / remove).
-- 🗂 **Score history** with the ability to delete a mistaken entry.
-- 🏆 **Live leaderboard** based on each team's best round.
-- 📤 **Excel export** with all scores and the leaderboard, filterable by league or across all leagues.
-- 🔌 **Fully local-first** — data lives in a single SQLite file, and no internet connection is needed after the initial `npm install`.
-- 🌐 RTL, Persian-language UI, set in the Vazirmatn typeface.
+**PishCup** is a RoboCup-style robotics competition organized by **Pishnam Robotics Academy**, spanning three leagues:
 
-## Project Structure
+<div align="center">
+
+| 🟢 Junior | 🟡 Advanced Junior | 🔴 Senior |
+| :-------: | :----------------: | :-------: |
+
+</div>
+
+**PishCup-ScS-App** ("ScS" = Scoring System) is the official judging platform for the event — replacing paper scoresheets with a fast, accurate, and judge-friendly digital workflow, from the first round to the final standings.
+
+---
+
+## ✨ Features
+
+- 🧾 **League-specific scoring forms** — laid out to match the official printed judging sheets, pixel for pixel
+- 🕋 **Native RTL Persian UI** — built with the Vazirmatn font for a natural experience for Persian-speaking judges
+- 🧮 **Automatic, rule-driven scoring**
+  - Multi-option items (e.g. _tiles crossed_, 1–24 options) → base score × options checked
+  - Simple checkbox items → full score on check
+  - Multi-state items (e.g. obstacle crossing → _not attempted / with collision / clean pass_)
+  - Free-scale qualitative items (creativity, workspace tidiness, teamwork/ethics) → partial scoring 0 → max
+- 📈 **Live standings** — ranked automatically by each team's best round
+- 📊 **One-click Excel export** — a separate sheet per league, ready to print or archive
+- ⏱️ **Custom RTL time-input widget** — faster, error-resistant time entry for judges under pressure
+- 🔌 **Offline-first** — runs entirely on a local laptop with zero internet dependency on competition day
+- ☁️ **Cloud-ready** — same codebase deploys to a self-hosted server or a serverless cloud stack
+
+---
+
+## 🧱 Architecture
+
+<div align="center">
+
+```
+┌─────────────────────┐        ┌──────────────────────┐        ┌─────────────────┐
+│   client (React)     │  ───▶  │   server (Express)    │  ───▶  │   PostgreSQL     │
+│   Vite · RTL UI       │        │   Scoring engine      │        │   (Neon / Docker)│
+└─────────────────────┘        └──────────────────────┘        └─────────────────┘
+```
+
+</div>
+
+| Layer                 | Technology                                             |
+| --------------------- | ------------------------------------------------------ |
+| 🎨 Frontend           | React + Vite                                           |
+| ⚙️ Backend            | Node.js + Express                                      |
+| 🗄️ Database           | PostgreSQL _(migrated from an earlier SQLite version)_ |
+| 📤 Excel export       | SheetJS (`xlsx`)                                       |
+| ☁️ Cloud deploy       | Vercel (serverless) + Neon (managed Postgres)          |
+| 🐳 Self-hosted deploy | Docker + Docker Compose + Nginx                        |
+| 🔁 CI/CD              | GitHub Actions → GitHub Container Registry (GHCR)      |
+
+### Repository Structure
 
 ```
 PishCup-ScS-App/
-  server/              -> Node.js + Express + SQLite (local database and API)
-    index.js            - API route definitions
-    db.js                - SQLite connection and table setup
-    scoringConfig.js     - Scoring rules per league (source of truth for calculations)
-  client/              -> React + Vite (user interface)
-    src/App.jsx          - Tabs: Teams / Score Entry / History / Leaderboard / Excel Export
-    src/ScoreForm.jsx     - Score entry form styled after the judging sheets
-    src/index.css         - Styling and color palette
+├── client/   🎨 React + Vite frontend — judging UI, standings, exports
+└── server/   ⚙️ Node.js + Express API — scoring logic, PostgreSQL access
 ```
 
-## Prerequisites
+---
 
-Node.js version 18 or later must be installed ([download from nodejs.org](https://nodejs.org)).
+## 🚀 Quick Start (Local Development)
 
-## Setup (first time only)
+### Prerequisites
 
-### 1. Server (backend + database)
+- Node.js **18+**
+- A PostgreSQL instance (local, or managed like Neon)
+
+### 1️⃣ Configure the database
+
+Create `server/.env`:
+
+```env
+DATABASE_URL=postgres://user:password@localhost:5432/pishcup
+PORT=4000
+```
+
+### 2️⃣ Start the backend
 
 ```bash
 cd server
@@ -71,11 +106,9 @@ npm install
 npm start
 ```
 
-The server runs at `http://localhost:4000`. The database file is created automatically at `server/scores.db` (SQLite).
+➡️ API live at `http://localhost:4000`
 
-### 2. Client (user interface)
-
-Open a new terminal:
+### 3️⃣ Start the frontend
 
 ```bash
 cd client
@@ -83,59 +116,78 @@ npm install
 npm run dev
 ```
 
-Then open `http://localhost:5173` in your browser.
+➡️ Open `http://localhost:5173` — the dev server proxies API calls to the backend.
 
-## Running it afterwards
+---
 
-Every time you want to run the app, only these two commands are needed (no need to `npm install` again):
+## 🐳 Deployment
+
+### Option A — Self-hosted (Docker + Nginx)
 
 ```bash
-# terminal 1
-cd server && npm start
-
-# terminal 2
-cd client && npm run dev
+docker compose up -d --build
 ```
 
-## API Reference
+| Service  | Role                                       |
+| -------- | ------------------------------------------ |
+| `client` | Production build served behind Nginx       |
+| `server` | Express API on the internal Docker network |
+| `nginx`  | Reverse proxy / HTTP(S) termination        |
 
-The server exposes a simple REST API at `http://localhost:4000/api`:
+**CI/CD pipeline:** every push to `main` triggers a GitHub Actions workflow that builds Docker images and publishes them to **GHCR**. The server pulls the new images and restarts the stack — zero manual steps.
 
-| Method | Route | Description |
-|---|---|---|
-| GET | `/api/config` | Returns the full scoring rule definition for all three leagues |
-| GET | `/api/teams?league=` | List teams (optional: filter by league) |
-| POST | `/api/teams` | Add a new team `{ name, league }` |
-| DELETE | `/api/teams/:id` | Delete a team and its scores |
-| GET | `/api/scores?team_id=&league=` | List recorded score entries |
-| POST | `/api/scores` | Record a round's score `{ team_id, league, round_number, values, judge_name }` |
-| PUT | `/api/scores/:id` | Edit a score entry |
-| DELETE | `/api/scores/:id` | Delete a score entry |
-| GET | `/api/leaderboard?league=` | Leaderboard based on each team's best round |
-| GET | `/api/export?league=` | Download an Excel file with scores and the leaderboard |
+### Option B — Serverless (Vercel + Neon)
 
-## Scoring Rules
+Set in your Vercel project:
 
-All rules live in `server/scoringConfig.js`, and editing it automatically updates both the score entry form and the server-side calculations:
+```env
+DATABASE_URL=<Neon connection string>
+```
 
-- For items with multiple options/numbers (e.g. "crossing each tile", 1 through 24), score = (item's base points) × (number of options checked).
-- Simple items (e.g. "robot powers on") are plain checkboxes: checked = full points.
-- The "crossing the obstacle" item is a choice between three states (did not cross / crossed with collision / crossed without collision).
-- "Creativity", "workspace cleanliness", and "team conduct & cooperation" are adjustable numbers from zero up to the item's max, so the judge can award partial credit.
+> ⚠️ `vercel.json` must use the modern config format (`rewrites`, or `builds`/`routes`) for API routes to resolve correctly.
 
-If any of these assumptions differ from your competition's actual rules, just edit `scoringConfig.js` or open an Issue.
+---
 
-## Notes
+## 📐 Scoring Rules
 
-- **Where is the data stored?** Everything lives in the `server/scores.db` file. To back it up, just copy that one file.
-- **Does it work offline?** Yes — after the initial setup (`npm install`), the whole app runs locally (on localhost) with no internet connection required.
-- **Multiple judges at once?** If all judges work on one laptop, that's fine. To connect multiple devices over a local network, run the server bound to your local IP (not just `localhost`), or open an Issue and this can be added.
-- **Changing the scoring rules:** All rules are in `server/scoringConfig.js`.
+All rules live in **`server/scoringConfig.js`** — one source of truth shared by both the form UI and the scoring engine.
 
-## Contributing
+| Item type                                  | Rule                                        |
+| ------------------------------------------ | ------------------------------------------- |
+| Multi-option                               | score = base value × options checked        |
+| Simple checkbox                            | full score when checked                     |
+| Obstacle crossing                          | not attempted / with collision / clean pass |
+| Qualitative (creativity, tidiness, ethics) | free value, `0` → item max                  |
 
-Issues and pull requests are welcome. For larger changes (like adding a new league or changing the database structure), please open an Issue first so we can agree on an approach.
+---
 
-## License
+## 📊 Excel Export
 
-This project is released under the [MIT License](LICENSE) — use, modify, and distribute freely.
+Generate a full results workbook on demand — one sheet per league (🟢 Junior, 🟡 Advanced Junior, 🔴 Senior), each with standings and a round-by-round score breakdown per team.
+
+---
+
+## 💾 Backups
+
+| Setup         | How to back up          |
+| ------------- | ----------------------- |
+| PostgreSQL    | `pg_dump`               |
+| Legacy SQLite | Copy `server/scores.db` |
+
+---
+
+## 🤝 Contributing
+
+Built and maintained for **PishCup**, by **Pishanam Robotics Academy**. Found a bug or have an idea? Open an issue — contributions are welcome.
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see [`LICENSE`](./LICENSE) for details.
+
+---
+
+<div align="center">
+
+Made with 🤖 for **PishCup** · Pishnam Robotics Academy
+
+</div>
