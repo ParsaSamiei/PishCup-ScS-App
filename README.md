@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏆 PishCup-ScS-App
+#  PishCup-ScS-App
 
 ### Scoring & Standings System for PishCup
 
@@ -17,13 +17,13 @@
 
 ---
 
-## 🤖 About PishCup
+##  About PishCup
 
 **PishCup** is a RoboCup-style robotics competition organized by **Pishnam Robotics Academy**, spanning three leagues:
 
 <div align="center">
 
-| 🟢 Junior | 🟡 Advanced Junior | 🔴 Senior |
+|  Junior |  Advanced Junior |  Senior |
 | :-------: | :----------------: | :-------: |
 
 </div>
@@ -32,24 +32,24 @@
 
 ---
 
-## ✨ Features
+##  Features
 
-- 🧾 **League-specific scoring forms** — laid out to match the official printed judging sheets, pixel for pixel
-- 🕋 **Native RTL Persian UI** — built with the Vazirmatn font for a natural experience for Persian-speaking judges
-- 🧮 **Automatic, rule-driven scoring**
+-  **League-specific scoring forms** — laid out to match the official printed judging sheets, pixel for pixel
+-  **Native RTL Persian UI** — built with the Vazirmatn font for a natural experience for Persian-speaking judges
+-  **Automatic, rule-driven scoring**
   - Multi-option items (e.g. _tiles crossed_, 1–24 options) → base score × options checked
   - Simple checkbox items → full score on check
   - Multi-state items (e.g. obstacle crossing → _not attempted / with collision / clean pass_)
   - Free-scale qualitative items (creativity, workspace tidiness, teamwork/ethics) → partial scoring 0 → max
-- 📈 **Live standings** — ranked automatically by each team's best round
-- 📊 **One-click Excel export** — a separate sheet per league, ready to print or archive
-- ⏱️ **Custom RTL time-input widget** — faster, error-resistant time entry for judges under pressure
-- 🔌 **Offline-first** — runs entirely on a local laptop with zero internet dependency on competition day
-- ☁️ **Cloud-ready** — same codebase deploys to a self-hosted server or a serverless cloud stack
+-  **Live standings** — ranked automatically by each team's best round
+-  **One-click Excel export** — a separate sheet per league, ready to print or archive
+-  **Custom RTL time-input widget** — faster, error-resistant time entry for judges under pressure
+-  **Offline-first** — runs entirely on a local laptop with zero internet dependency on competition day
+-  **Cloud-ready** — same codebase deploys to a self-hosted server or a serverless cloud stack
 
 ---
 
-## 🧱 Architecture
+##  Architecture
 
 <div align="center">
 
@@ -64,25 +64,25 @@
 
 | Layer                 | Technology                                             |
 | --------------------- | ------------------------------------------------------ |
-| 🎨 Frontend           | React + Vite                                           |
-| ⚙️ Backend            | Node.js + Express                                      |
-| 🗄️ Database           | PostgreSQL _(migrated from an earlier SQLite version)_ |
-| 📤 Excel export       | SheetJS (`xlsx`)                                       |
-| ☁️ Cloud deploy       | Vercel (serverless) + Neon (managed Postgres)          |
-| 🐳 Self-hosted deploy | Docker + Docker Compose + Nginx                        |
-| 🔁 CI/CD              | GitHub Actions → GitHub Container Registry (GHCR)      |
+|  Frontend           | React + Vite                                           |
+|  Backend            | Node.js + Express                                      |
+|  Database           | PostgreSQL _(migrated from an earlier SQLite version)_ |
+|  Excel export       | SheetJS (`xlsx`)                                       |
+|  Cloud deploy       | Vercel (serverless) + Neon (managed Postgres)          |
+|  Self-hosted deploy | Docker + Docker Compose + Nginx                        |
+|  CI/CD              | GitHub Actions → GitHub Container Registry (GHCR)      |
 
 ### Repository Structure
 
 ```
 PishCup-ScS-App/
-├── client/   🎨 React + Vite frontend — judging UI, standings, exports
-└── server/   ⚙️ Node.js + Express API — scoring logic, PostgreSQL access
+├── client/     React + Vite frontend — judging UI, standings, exports
+└── server/     Node.js + Express API — scoring logic, PostgreSQL access
 ```
 
 ---
 
-## 🚀 Quick Start (Local Development)
+##  Quick Start (Local Development)
 
 ### Prerequisites
 
@@ -144,11 +144,11 @@ Set in your Vercel project:
 DATABASE_URL=<Neon connection string>
 ```
 
-> ⚠️ `vercel.json` must use the modern config format (`rewrites`, or `builds`/`routes`) for API routes to resolve correctly.
+>  `vercel.json` must use the modern config format (`rewrites`, or `builds`/`routes`) for API routes to resolve correctly.
 
 ---
 
-## 📐 Scoring Rules
+##  Scoring Rules
 
 All rules live in **`server/scoringConfig.js`** — one source of truth shared by both the form UI and the scoring engine.
 
@@ -161,13 +161,13 @@ All rules live in **`server/scoringConfig.js`** — one source of truth shared b
 
 ---
 
-## 📊 Excel Export
+##  Excel Export
 
-Generate a full results workbook on demand — one sheet per league (🟢 Junior, 🟡 Advanced Junior, 🔴 Senior), each with standings and a round-by-round score breakdown per team.
+Generate a full results workbook on demand — one sheet per league ( Junior,  Advanced Junior,  Senior), each with standings and a round-by-round score breakdown per team.
 
 ---
 
-## 💾 Backups
+##  Backups
 
 | Setup         | How to back up          |
 | ------------- | ----------------------- |
@@ -176,11 +176,11 @@ Generate a full results workbook on demand — one sheet per league (🟢 Junior
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Built and maintained for **PishCup**, by **Pishanam Robotics Academy**. Found a bug or have an idea? Open an issue — contributions are welcome.
 
-## 📄 License
+##  License
 
 This project is licensed under the **MIT License** — see [`LICENSE`](./LICENSE) for details.
 
@@ -188,6 +188,6 @@ This project is licensed under the **MIT License** — see [`LICENSE`](./LICENSE
 
 <div align="center">
 
-Made with 🤖 for **PishCup** · Pishnam Robotics Academy
+Made with  for **PishCup** · Pishnam Robotics Academy
 
 </div>
